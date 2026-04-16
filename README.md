@@ -1,4 +1,4 @@
-# Agentic Quantum Bell State Agent Skills
+# Declarative Agent Loop: Running Quantum Experiments Without Touching Python
 
 > *Agentic AI driving quantum circuit simulation — same pattern as Terraform Module Expert.*
 
