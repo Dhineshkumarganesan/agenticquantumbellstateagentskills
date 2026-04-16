@@ -1,0 +1,14 @@
+{
+  "circuit_type": "bell_state",
+  "backend": "aer_simulator",
+  "shots": 100,
+  "counts": {
+    "00": 41,
+    "11": 59
+  },
+  "probabilities": {
+    "00": 0.41,
+    "11": 0.59
+  },
+  "entanglement_verified": true
+}

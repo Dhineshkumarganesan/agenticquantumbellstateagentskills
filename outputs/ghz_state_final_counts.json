@@ -1,0 +1,14 @@
+{
+  "circuit_type": "ghz_state",
+  "backend": "aer_simulator",
+  "shots": 100,
+  "counts": {
+    "111": 54,
+    "000": 46
+  },
+  "probabilities": {
+    "111": 0.54,
+    "000": 0.46
+  },
+  "entanglement_verified": true
+}
