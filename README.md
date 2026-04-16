@@ -125,5 +125,4 @@ and the runtime executes.
 
 This is identical to how the Terraform Module Expert works —
 the agent is a **smart configurator**, not a code writer.
-# agenticquantumbellstateagentskills
-# agenticquantumbellstateagentskills
+
