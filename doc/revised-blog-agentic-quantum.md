@@ -297,6 +297,16 @@ We tested a variety of quantum experiments using the declarative agentic pattern
 
 Each result matches quantum theory expectations for the respective experiment. **New experiments can be added by simply editing YAML — no Python changes required.**
 
+**Why these experiments matter to quantum engineers:**
+
+- **bell_state:** Demonstrates basic entanglement — essential for quantum communication and teleportation.
+- **ghz_state:** Shows multi-qubit entanglement, foundational for quantum error correction and distributed quantum protocols.
+- **custom_declarative:** Proves the system can run arbitrary circuits from YAML, enabling rapid prototyping and automation.
+- **single_qubit_superposition:** Validates the ability to create and measure superposition, the core of quantum parallelism.
+- **three_qubit_superposition:** Tests scalability and confirms expected quantum statistics for larger systems.
+
+Together, these results confirm correct simulator behavior while demonstrating that **declarative, agentic workflows can replace imperative Python for a growing class of quantum experiments.** New experiments can be added by simply editing YAML — no Python changes required.
+
 
 ## This is where it becomes agentic
 
