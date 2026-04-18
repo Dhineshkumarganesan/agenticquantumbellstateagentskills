@@ -70,8 +70,32 @@ They communicate only through YAML skill files.
 | Bell State | 2 (fixed) | Quantum entanglement |
 | GHZ State | 3–5 | Multi-qubit entanglement |
 | Superposition | 1–4 | Quantum superposition |
+| Declarative (YAML-defined) | Any | Arbitrary circuits via gates/measurements |
 
 ---
+
+### Declarative Agent Loop (New!)
+
+- You can now define any quantum experiment by listing gates and measurements in YAML (see `skills/circuits/custom_declarative.md`, `single_qubit_superposition.md`, etc.).
+- The runtime dynamically builds and runs the circuit from the YAML—no Python code changes required.
+- Example declarative skill:
+
+```yaml
+---
+action: design_circuit
+circuit_type: custom_declarative
+qubits: 2
+gates:
+  - type: h
+    target: [0]
+  - type: cx
+    control: 0
+    target: 1
+measurements: [0, 1]
+---
+```
+
+This enables rapid prototyping and agent-driven automation for any quantum circuit.
 
 ## Quick Start
 
