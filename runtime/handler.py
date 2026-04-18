@@ -76,16 +76,41 @@ CIRCUIT_BUILDERS = {
 
 # ── Pipeline steps ─────────────────────────────────────────────────────────────
 
+def build_declarative_circuit(skill: dict) -> QuantumCircuit:
+    """Build a circuit from declarative YAML (gates, qubits, measurements)."""
+    qubits = skill["qubits"]
+    qc = QuantumCircuit(qubits, qubits)
+    for gate in skill.get("gates", []):
+        gtype = gate["type"].lower()
+        if gtype == "h":
+            for t in gate.get("target", []):
+                qc.h(t)
+        elif gtype == "cx":
+            qc.cx(gate["control"], gate["target"])
+        elif gtype == "rz":
+            for t in gate.get("target", []):
+                qc.rz(gate["parameter"], t)
+        # Add more gates as needed
+        else:
+            raise ValueError(f"Unsupported gate type: {gtype}")
+    # Measurements
+    for m in skill.get("measurements", []):
+        qc.measure(m, m)
+    return qc
+
 def step_design_circuit(skill: dict) -> QuantumCircuit:
     """Step 1 — Build the circuit from skill config."""
     circuit_type = skill["circuit_type"]
     print(f"  [design]   circuit_type={circuit_type}  qubits={skill['qubits']}")
 
     builder = CIRCUIT_BUILDERS.get(circuit_type)
-    if not builder:
-        raise ValueError(f"Unknown circuit_type: '{circuit_type}'. "
-                         f"Valid options: {list(CIRCUIT_BUILDERS.keys())}")
-    return builder(skill)
+    if builder:
+        return builder(skill)
+    # Try declarative
+    if "gates" in skill and "measurements" in skill:
+        return build_declarative_circuit(skill)
+    raise ValueError(f"Unknown circuit_type: '{circuit_type}'. "
+                     f"This handler only supports: {list(CIRCUIT_BUILDERS.keys())} or declarative YAML with 'gates' and 'measurements'. To add a new circuit, extend CIRCUIT_BUILDERS or use declarative YAML.")
 
 
 def step_execute_circuit(qc: QuantumCircuit, skill: dict) -> dict:
