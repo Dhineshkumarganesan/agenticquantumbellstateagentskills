@@ -1,14 +1,14 @@
 {
-  "circuit_type": "custom_declarative",
+  "circuit_type": "universal_demo",
   "backend": "aer_simulator",
   "shots": 100,
   "counts": {
-    "11": 52,
-    "00": 48
+    "00": 51,
+    "11": 49
   },
   "probabilities": {
-    "11": 0.52,
-    "00": 0.48
+    "00": 0.51,
+    "11": 0.49
   },
   "entanglement_verified": false
 }

@@ -1,0 +1,7 @@
+{
+  "report_type": "error_rates",
+  "gate_errors": 0.01,
+  "readout_errors": 0.02,
+  "noise_model": "sample_noise_model",
+  "details": "This is a placeholder noise/error analysis report. Integrate with Qiskit noise model for real data."
+}

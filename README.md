@@ -49,6 +49,10 @@ User Intent (natural language)
 
 ---
 
+## Limitations and Extensibility
+
+While the system is highly declarative, some advanced features (such as new gate types, advanced circuit logic, or new output/visualization types like noise diagrams) require Python handler enhancements. For most new experiments or parameter changes, you only need to add or edit skills/*.md files—no Python changes are needed. However, if you introduce a new skill type or feature not yet supported by the handler, you must update the Python code to recognize and process it. Once a circuit or output type is supported, you can iterate and propagate changes freely via YAML/Markdown skills alone.
+
 ## The Key Pattern
 
 | Layer | Who Owns It | What It Contains |

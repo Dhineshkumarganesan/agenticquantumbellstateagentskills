@@ -182,60 +182,128 @@ def run_pipeline():
     print("╚══════════════════════════════════════╝\n")
 
     circuit_files = list((SKILLS_DIR / "circuits").glob("*.md"))
-    execute_skill  = read_skill(SKILLS_DIR / "execution" / "execute_circuit.md")
-    viz_skill      = read_skill(SKILLS_DIR / "output"    / "visualize_circuit.md")
-    export_skill   = read_skill(SKILLS_DIR / "output"    / "export_counts.md")
+    execution_files = list((SKILLS_DIR / "execution").glob("*.md"))
+    output_files = list((SKILLS_DIR / "output").glob("*.md"))
+
+    # Load default execution/output skills for pipeline
+    execute_skill  = read_skill(SKILLS_DIR / "execution" / "execute_circuit.md") if (SKILLS_DIR / "execution" / "execute_circuit.md").exists() else None
+    viz_skill      = read_skill(SKILLS_DIR / "output"    / "visualize_circuit.md") if (SKILLS_DIR / "output" / "visualize_circuit.md").exists() else None
+    export_skill   = read_skill(SKILLS_DIR / "output"    / "export_counts.md") if (SKILLS_DIR / "output" / "export_counts.md").exists() else None
 
     ran_any = False
+    # Process circuit skills
     for f in circuit_files:
         skill = read_skill(f)
-        if skill.get("action") != "design_circuit":
+        action = skill.get("action")
+        if not action:
+            print(f"[skip] No action defined in {f.name}")
             continue
-        circuit_type = skill["circuit_type"]
-        qubits = skill["qubits"]
-        print(f"\n--- Running circuit: {circuit_type} ({qubits} qubits) ---\n")
-        print(f"Pipeline configured:")
-        print(f"  Circuit : {circuit_type}")
-        print(f"  Qubits  : {qubits}")
-        print(f"  Shots   : {execute_skill['shots']}")
-        print(f"  Backend : {execute_skill['backend']}\n")
-        print("Running steps...\n")
+        if action == "design_circuit":
+            circuit_type = skill["circuit_type"]
+            qubits = skill["qubits"]
+            print(f"\n--- Running circuit: {circuit_type} ({qubits} qubits) ---\n")
+            print(f"Pipeline configured:")
+            print(f"  Circuit : {circuit_type}")
+            print(f"  Qubits  : {qubits}")
+            print(f"  Shots   : {execute_skill['shots']}")
+            print(f"  Backend : {execute_skill['backend']}\n")
+            print("Running steps...\n")
 
-        # Execute pipeline for this circuit
-        qc     = step_design_circuit(skill)
-        counts = step_execute_circuit(qc, execute_skill)
-        # Save outputs with unique names per circuit
-        base = circuit_type
-        # Save counts
-        counts_path = OUTPUT_DIR / f"{base}_counts.json"
-        counts_path.write_text(json.dumps(counts, indent=2))
-        # Visualize
-        orig_diagram = OUTPUT_DIR / "circuit_diagram.png"
-        orig_hist = OUTPUT_DIR / "measurement_histogram.png"
-        step_visualize_circuit(qc, counts, skill, viz_skill)
-        # Rename outputs
-        if orig_diagram.exists():
-            orig_diagram.rename(OUTPUT_DIR / f"{base}_diagram.png")
-        if orig_hist.exists():
-            orig_hist.rename(OUTPUT_DIR / f"{base}_histogram.png")
-        # Export enriched counts
-        result = step_export_counts(counts, circuit_type, execute_skill["shots"], export_skill)
-        final_counts_path = OUTPUT_DIR / "final_counts.json"
-        if final_counts_path.exists():
-            final_counts_path.rename(OUTPUT_DIR / f"{base}_final_counts.json")
-        print("\n✓ Pipeline complete for", circuit_type)
-        print("Outputs:")
-        for f_out in sorted(OUTPUT_DIR.glob(f"{base}_*")):
-            print(f"  → outputs/{f_out.name}")
-        print("\nResults summary:")
-        for state, prob in result["probabilities"].items():
-            bar = "█" * int(prob * 40)
-            print(f"  |{state}⟩  {bar}  {prob*100:.1f}%")
-        if result["entanglement_verified"]:
-            print(f"\n✓ Entanglement verified for {circuit_type}")
-        ran_any = True
+            # Execute pipeline for this circuit
+            qc     = step_design_circuit(skill)
+            counts = step_execute_circuit(qc, execute_skill)
+            # Save outputs with unique names per circuit
+            base = circuit_type
+            # Save counts
+            counts_path = OUTPUT_DIR / f"{base}_counts.json"
+            counts_path.write_text(json.dumps(counts, indent=2))
+            # Visualize
+            orig_diagram = OUTPUT_DIR / "circuit_diagram.png"
+            orig_hist = OUTPUT_DIR / "measurement_histogram.png"
+            step_visualize_circuit(qc, counts, skill, viz_skill)
+            # Rename outputs
+            if orig_diagram.exists():
+                orig_diagram.rename(OUTPUT_DIR / f"{base}_diagram.png")
+            if orig_hist.exists():
+                orig_hist.rename(OUTPUT_DIR / f"{base}_histogram.png")
+            # Export enriched counts
+            result = step_export_counts(counts, circuit_type, execute_skill["shots"], export_skill)
+            final_counts_path = OUTPUT_DIR / "final_counts.json"
+            if final_counts_path.exists():
+                final_counts_path.rename(OUTPUT_DIR / f"{base}_final_counts.json")
+            print("\n✓ Pipeline complete for", circuit_type)
+            print("Outputs:")
+            for f_out in sorted(OUTPUT_DIR.glob(f"{base}_*")):
+                print(f"  → outputs/{f_out.name}")
+            print("\nResults summary:")
+            for state, prob in result["probabilities"].items():
+                bar = "█" * int(prob * 40)
+                print(f"  |{state}⟩  {bar}  {prob*100:.1f}%")
+            if result["entanglement_verified"]:
+                print(f"\n✓ Entanglement verified for {circuit_type}")
+            ran_any = True
+        elif action == "execute":
+            print(f"[info] Execute action found in {f.name} (future extension point)")
+            # Placeholder: implement execute logic here if needed
+            ran_any = True
+        elif action == "measure":
+            print(f"[info] Measure action found in {f.name} (future extension point)")
+            # Placeholder: implement measure logic here if needed
+            ran_any = True
+        elif action == "noise_analysis":
+            print(f"[noise] Noise analysis action found in {f.name}")
+            # Implement noise/error analysis report generation
+            noise_report = {
+                "report_type": skill.get("report_type", "error_rates"),
+                "gate_errors": 0.01 if skill.get("include_gate_errors") else None,
+                "readout_errors": 0.02 if skill.get("include_readout_errors") else None,
+                "noise_model": "ideal" if not skill.get("include_noise_model") else "sample_noise_model",
+                "details": "This is a placeholder noise/error analysis report. Integrate with Qiskit noise model for real data."
+            }
+            out_path = OUTPUT_DIR / "noise_analysis_report.json"
+            out_path.write_text(json.dumps(noise_report, indent=2))
+            print(f"  [noise] Noise analysis report saved → {out_path}")
+            ran_any = True
+        else:
+            print(f"[skip] Unknown action '{action}' in {f.name}")
+    # Process execution skills
+    for f in execution_files:
+        skill = read_skill(f)
+        action = skill.get("action")
+        if not action:
+            print(f"[skip] No action defined in {f.name}")
+            continue
+        if action == "execute":
+            print(f"[exec] Execute action found in {f.name}")
+            # Placeholder: implement execution logic here if needed
+            ran_any = True
+        else:
+            print(f"[skip] Unknown action '{action}' in {f.name}")
+
+    # Process output skills
+    for f in output_files:
+        skill = read_skill(f)
+        action = skill.get("action")
+        if not action:
+            print(f"[skip] No action defined in {f.name}")
+            continue
+        if action == "noise_analysis":
+            print(f"[noise] Noise analysis action found in {f.name}")
+            noise_report = {
+                "report_type": skill.get("report_type", "error_rates"),
+                "gate_errors": 0.01 if skill.get("include_gate_errors") else None,
+                "readout_errors": 0.02 if skill.get("include_readout_errors") else None,
+                "noise_model": "ideal" if not skill.get("include_noise_model") else "sample_noise_model",
+                "details": "This is a placeholder noise/error analysis report. Integrate with Qiskit noise model for real data."
+            }
+            out_path = OUTPUT_DIR / "noise_analysis_report.json"
+            out_path.write_text(json.dumps(noise_report, indent=2))
+            print(f"  [noise] Noise analysis report saved → {out_path}")
+            ran_any = True
+        else:
+            print(f"[skip] Unknown action '{action}' in {f.name}")
     if not ran_any:
-        print("No valid design_circuit skills found in skills/circuits/.")
+        print("No valid skills with recognized actions found in skills/circuits/ or skills/output/ or skills/execution/.")
 
 
 if __name__ == "__main__":

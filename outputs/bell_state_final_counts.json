@@ -3,12 +3,12 @@
   "backend": "aer_simulator",
   "shots": 100,
   "counts": {
-    "11": 47,
-    "00": 53
+    "00": 49,
+    "11": 51
   },
   "probabilities": {
-    "11": 0.47,
-    "00": 0.53
+    "00": 0.49,
+    "11": 0.51
   },
   "entanglement_verified": true
 }
