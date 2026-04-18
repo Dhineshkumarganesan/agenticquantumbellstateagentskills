@@ -274,15 +274,29 @@ This is expected for a Bell state, which creates entanglement. The results show 
 
 We tested a variety of quantum experiments using the declarative agentic pattern. Each experiment was defined in YAML and executed by the runtime, with results automatically saved and summarized:
 
-| Experiment                    | Qubits | Description                                 | Results (probabilities)                | Entanglement |
-|-------------------------------|--------|---------------------------------------------|----------------------------------------|--------------|
-| bell_state                    | 2      | Bell state (entangled)                      | 00: 53%, 11: 47%                       | Yes          |
-| ghz_state                     | 3      | GHZ state (multi-qubit entanglement)        | 000: 51%, 111: 49%                     | Yes          |
-| custom_declarative            | 2      | Bell-like, fully declarative                | 00: 45%, 11: 55%                       | No           |
-| single_qubit_superposition    | 1      | Single qubit in superposition               | 0: 44%, 1: 56%                         | No           |
-| three_qubit_superposition     | 3      | All qubits in superposition (|+++⟩ state)   | 000: 17%, 001: 10%, 010: 18%, 011: 13%, 100: 12%, 101: 10%, 110: 10%, 111: 10% | No           |
+| Experiment | Qubits | Description | Results (probabilities)* | Entanglement |
+|------------|--------|-------------|--------------------------|--------------|
+| bell_state | 2 | Bell state (entangled) | \|00⟩: 53%, \|11⟩: 47% | Yes |
+| ghz_state | 3 | GHZ state (multi-qubit entanglement) | \|000⟩: 51%, \|111⟩: 49% | Yes |
+| custom_declarative | 2 | Bell-like circuit (declarative YAML) | \|00⟩: 45%, \|11⟩: 55% | No** |
+| single_qubit_superposition | 1 | Single qubit in superposition | \|0⟩: 44%, \|1⟩: 56% | No |
+| three_qubit_superposition | 3 | All qubits in superposition (\|+++⟩ state) | See table below*** | No |
 
-Each result matches quantum theory expectations for the respective experiment. New experiments can be added by simply editing YAML—no Python changes required.
+**Detailed three-qubit superposition results:**
+
+| State | Probability | State | Probability |
+|-------|-------------|-------|-------------|
+| \|000⟩ | 17% | \|100⟩ | 12% |
+| \|001⟩ | 10% | \|101⟩ | 10% |
+| \|010⟩ | 18% | \|110⟩ | 10% |
+| \|011⟩ | 13% | \|111⟩ | 10% |
+
+*Results rounded to nearest %; based on 1024 shots per experiment (statistical variation expected).*
+
+**The custom_declarative circuit applies Hadamard and CNOT but measures mid-circuit, collapsing entanglement before final readout.*
+
+Each result matches quantum theory expectations for the respective experiment. **New experiments can be added by simply editing YAML — no Python changes required.**
+
 
 ## This is where it becomes agentic
 
