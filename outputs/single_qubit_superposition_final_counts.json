@@ -1,0 +1,14 @@
+{
+  "circuit_type": "single_qubit_superposition",
+  "backend": "aer_simulator",
+  "shots": 100,
+  "counts": {
+    "0": 44,
+    "1": 56
+  },
+  "probabilities": {
+    "0": 0.44,
+    "1": 0.56
+  },
+  "entanglement_verified": false
+}

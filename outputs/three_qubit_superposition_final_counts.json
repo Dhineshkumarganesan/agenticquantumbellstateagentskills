@@ -1,0 +1,26 @@
+{
+  "circuit_type": "three_qubit_superposition",
+  "backend": "aer_simulator",
+  "shots": 100,
+  "counts": {
+    "101": 10,
+    "110": 10,
+    "011": 13,
+    "111": 10,
+    "010": 18,
+    "000": 17,
+    "100": 12,
+    "001": 10
+  },
+  "probabilities": {
+    "101": 0.1,
+    "110": 0.1,
+    "011": 0.13,
+    "111": 0.1,
+    "010": 0.18,
+    "000": 0.17,
+    "100": 0.12,
+    "001": 0.1
+  },
+  "entanglement_verified": false
+}
