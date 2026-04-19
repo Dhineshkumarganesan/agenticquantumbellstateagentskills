@@ -1,4 +1,4 @@
-# Declarative Agent Loop: Running Quantum Experiments Without Touching Python
+# Agents Edit Config, Not Code: A Declarative Loop to Run Quantum Experiments
 
 > *Agentic AI driving quantum circuit simulation — same pattern as Terraform Module Expert.*
 
