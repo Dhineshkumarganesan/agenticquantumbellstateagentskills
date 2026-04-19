@@ -2,6 +2,24 @@
 
 > *Agentic AI driving quantum circuit simulation — same pattern as Terraform Module Expert.*
 
+Series: Engineering Platforms for the Agentic AI Era
+
+💬 Perspective
+
+“Exploring how agentic AI can be applied to build product-grade enterprise platform capabilities for infrastructure automation, system orchestration, and reusable workflow systems across classical and emerging computing workloads.”
+
+Introduction
+
+After exploring agentic platform engineering with Terraform module expert agents and skills, I was inspired to apply the same GitHub Copilot agent–skill orchestration pattern to quantum computing. My @QuLearnLab training provided a foundation in the quantum computing fundamentals, informing the approach and examples throughout. This post demonstrates how an orchestrator — powered by GitHub Copilot agents and skills — can manage quantum circuit workflows, making advanced experimentation more accessible, reproducible, and automation-friendly for developers.
+
+This is a proof-of-concept demonstrating a pattern — not a production system. The value is in the boundary it establishes, not the scale it operates at.
+
+Principle: Agents should edit configuration, not implementation.
+
+Most articles about “agentic AI and quantum computing” talk about LLMs designing quantum circuits. This post is about something far more practical: using an agent to control a configuration state machine, not execution logic.
+
+This post is for developers comfortable with Python and Qiskit, and curious to see what “agentic AI” looks like in real quantum experiments — not just in trend reports. The tools: GitHub Copilot, Qiskit, and the Aer simulator. No new frameworks. No cloud hardware required.
+
 ---
 
 ## Architecture
