@@ -6,17 +6,9 @@ from dataclasses import dataclass
 from typing import Optional, Any
 
 from qiskit import QuantumCircuit
+from .skills_loader import Skill  # Skill type hint
 from .skills_loader import Skill
 
-
-def _get_backend(backend_name: str = "aer_simulator"):
-    # Prefer qiskit-aer AerSimulator
-    try:
-        from qiskit_aer import AerSimulator
-        return AerSimulator()
-    except Exception:
-        from qiskit import Aer  # type: ignore
-        return Aer.get_backend(backend_name)
 
 
 @dataclass
@@ -28,62 +20,81 @@ class RuntimeState:
     context: dict[str, Any] = None  # general stash
 
 
-def execute_plan(
-    skills_list: list[str],
-    instruction: str,
-    state: RuntimeState,
-    skills_catalog: dict[str, Skill],
-):
-    state.last_instruction = instruction
+def execute_plan(state: RuntimeState, skills: list[Skill]) -> list[dict]:
+    """
+    Execute a validated plan. Each skill already has .validated_config
+    attached by the governance firewall in agent._validate_plan().
+    
+    Pattern 1: YAML drives everything.
+    Pattern 2: Only validated_config is read — never raw meta.
+    """
     os.makedirs(state.outputs_dir, exist_ok=True)
     if state.context is None:
         state.context = {}
-
-    for filename in skills_list:
-        skill = skills_catalog[filename]
-        meta = skill.meta
-        action = meta.get("action")
-
-        print(f"[Skill] {filename} - action={action} - goal={skill.goal or skill.title}")
-
+    results = []
+    for skill in skills:
+        config = skill.validated_config
+        action = config.action
+        goal = skill.goal or skill.title
+        print(f"[Skill] {skill.filename} - action={action} - goal={goal}")
         if action == "generate_circuit":
-            circuit_type = meta.get("circuit", "bell")
-            qubits = int(meta.get("qubits", 2))
-            measure = bool(meta.get("measure", True))
-            state.qc = generate_circuit(circuit_type=circuit_type, qubits=qubits, measure=measure)
-
+            state.qc = generate_circuit(
+                circuit_type=config.circuit,
+                qubits=config.qubits,
+                measure=config.measure,
+            )
+            results.append({"action": action, "status": "ok"})
         elif action == "execute_circuit":
             if state.qc is None:
-                raise RuntimeError("Cannot execute: circuit is None (generate step missing).")
-            shots = int(meta.get("shots", 1024))
-            backend = str(meta.get("backend", "aer_simulator"))
-            output_counts = str(meta.get("output_counts", os.path.join(state.outputs_dir, "bell_counts.json")))
-            state.counts = execute_circuit(state.qc, shots=shots, backend_name=backend, output_counts=output_counts)
-
+                raise RuntimeError(
+                    "Cannot execute: circuit is None (generate step missing)."
+                )
+            state.counts = execute_circuit(
+                state.qc, config, state,
+                output_counts=config.output_counts,
+            )
+            results.append({
+                "action": action,
+                "status": "ok",
+                "counts": state.counts,
+            })
         elif action == "draw_circuit":
             if state.qc is None:
-                raise RuntimeError("Cannot draw: circuit is None (generate step missing).")
-            draw_output = str(meta.get("draw_output", "mpl"))
-            dpi = int(meta.get("dpi", 200))
-            output_image = str(meta.get("output_image", os.path.join(state.outputs_dir, "bell_diagram.png")))
-            output_text = str(meta.get("output_text", os.path.join(state.outputs_dir, "bell_diagram.txt")))
+                raise RuntimeError(
+                    "Cannot draw: circuit is None (generate step missing)."
+                )
             draw_circuit(
                 state.qc,
                 outputs_dir=state.outputs_dir,
-                draw_output=draw_output,
-                dpi=dpi,
-                output_image=output_image,
-                output_text=output_text,
+                draw_output=config.draw_output,
+                dpi=config.dpi,
+                output_image=config.output_image,
+                output_text=config.output_text,
             )
-
+            results.append({
+                "action": action,
+                "status": "ok",
+                "image": config.output_image,
+            })
         elif action == "analyze_result":
             if state.counts is None:
-                raise RuntimeError("Cannot analyze: counts is None (execute step missing).")
-            expected_states = meta.get("expected_states", ["00", "11"])
-            analyze_result(state.counts, expected_states=list(expected_states))
-
+                raise RuntimeError(
+                    "Cannot analyze: counts is None (execute step missing)."
+                )
+            analyze_result(
+                state.counts,
+                expected_states=config.expected_states,
+            )
+            results.append({
+                "action": action,
+                "status": "ok",
+                "expected_states": config.expected_states,
+            })
         else:
-            raise ValueError(f"Unknown action in skill '{filename}': {action}")
+            raise ValueError(
+                f"Unknown action in skill '{skill.filename}': {action}"
+            )
+    return results
 
 
 def generate_circuit(circuit_type: str = "bell", qubits: int = 2, measure: bool = True) -> QuantumCircuit:
@@ -125,13 +136,62 @@ def generate_circuit(circuit_type: str = "bell", qubits: int = 2, measure: bool 
     raise ValueError(f"Unknown circuit type: {circuit_type}")
 
 
+from .schema import ExecutionMode
+
+
+def execute_variational(qc_template, validated_config, state, compute_cost):
+    """
+    Pattern 4: Agent defines bounds + policy, runtime owns the loop.
+    The agent NEVER touches the optimization loop itself.
+    """
+    from qiskit_algorithms.optimizers import COBYLA, SPSA
+    import numpy as np
+    policy = validated_config.variational_policy
+    if policy is None:
+        raise ValueError("Variational skill requires variational_policy in YAML")
+    OPTIMIZERS = {"COBYLA": COBYLA, "SPSA": SPSA}
+    OptClass = OPTIMIZERS.get(policy.optimizer)
+    if OptClass is None:
+        raise ValueError(f"Unknown optimizer: {policy.optimizer}")
+    optimizer = OptClass(maxiter=policy.max_iterations)
+    print(f"[Runtime] Variational policy: {policy.optimizer}, max_iter={policy.max_iterations}")
+    print(f"[Runtime] Parameter bounds: {policy.parameter_bounds}")
+    print("[Runtime] Agent defined the WHAT. Runtime handles the HOW. 🔁")
+    def cost_function(params):
+        bound_circuit = qc_template.assign_parameters(params)
+        counts = execute_circuit(
+            bound_circuit, validated_config, state,
+            output_counts=os.path.join(
+                state.outputs_dir, ".variational_scratch.json"
+            ),
+        )
+        return compute_cost(counts)
+    initial_point = np.array([(lo + hi) / 2 for lo, hi in policy.parameter_bounds])
+    result = optimizer.minimize(cost_function, initial_point)
+    state.optimal_params = result.x
+    state.optimal_cost = result.fun
+    return result
+
 def execute_circuit(
     qc: QuantumCircuit,
-    shots: int,
-    backend_name: str,
+    validated_config,
+    state,
     output_counts: str,
 ) -> dict:
-    backend = _get_backend(backend_name)
+    """
+    Seed-mode duality in action:
+    - deterministic → seeded simulator (reproducible)
+    - stochastic   → true quantum sampling (no seed)
+    """
+    from qiskit_aer import AerSimulator
+    backend = AerSimulator()
+    shots = validated_config.shots
+    run_options = {"shots": shots}
+    if validated_config.execution_mode == ExecutionMode.DETERMINISTIC:
+        run_options["seed_simulator"] = validated_config.seed
+        print(f"[Runtime] DETERMINISTIC mode | seed={validated_config.seed}")
+    else:
+        print("[Runtime] STOCHASTIC mode | genuine quantum randomness")
 
     try:
         from qiskit import transpile
@@ -139,12 +199,8 @@ def execute_circuit(
     except Exception:
         tqc = qc
 
-    try:
-        job = backend.run(tqc, shots=shots)
-        result = job.result()
-    except Exception:
-        from qiskit import execute
-        result = execute(tqc, backend, shots=shots).result()
+    job = backend.run(tqc, **run_options)
+    result = job.result()
 
     counts = result.get_counts()
     print(f"[Runtime] Counts: {counts} (shots={shots})")
@@ -154,6 +210,7 @@ def execute_circuit(
         json.dump(counts, f, indent=2, sort_keys=True)
 
     print(f"[Runtime] Saved counts -> {output_counts}")
+    state.counts = counts
     return counts
 
 

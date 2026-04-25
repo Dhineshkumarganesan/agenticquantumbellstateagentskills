@@ -52,5 +52,6 @@ def load_all_skills(skills_dir: str) -> dict[str, Skill]:
 
     for filename in sorted(os.listdir(skills_dir)):
         if filename.endswith(".md"):
-            skills[filename] = load_skill_file(skills_dir, filename)
+            skill = load_skill_file(skills_dir, filename)
+            skills[filename] = skill
     return skills

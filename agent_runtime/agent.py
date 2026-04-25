@@ -4,6 +4,7 @@ import os
 
 from .runtime import RuntimeState, execute_plan
 from .skills_loader import load_all_skills, Skill
+from .audit import create_audit_record  # ← ADD THIS
 
 DEFAULT_PLAN = [
     "generate_circuit.md",
@@ -14,11 +15,11 @@ DEFAULT_PLAN = [
 
 
 class AgentRuntime:
-    def __init__(self, skills_dir: str | None = None):
+    def __init__(self, skills_dir: str | None = None, outputs_dir: str = "outputs"):
         repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
         self.repo_root = repo_root
         self.skills_dir = skills_dir or os.path.join(repo_root, "skills")
-        self.outputs_dir = os.path.join(repo_root, "outputs")
+        self.outputs_dir = outputs_dir if os.path.isabs(outputs_dir) else os.path.join(repo_root, outputs_dir)
 
         self.skills = load_all_skills(self.skills_dir)
         self.state = RuntimeState(outputs_dir=self.outputs_dir)
@@ -55,23 +56,22 @@ class AgentRuntime:
 
         return plan
 
-    def _validate_plan(self, plan: list[str]) -> None:
-        missing = [p for p in plan if p not in self.skills]
-        if missing:
-            raise FileNotFoundError(
-                "Missing required skill files in skills/: " + ", ".join(missing)
-            )
-
-        # Basic validation: each skill should have an action
-        bad = []
-        for p in plan:
-            action = self.skills[p].meta.get("action")
-            if not action:
-                bad.append(p)
-        if bad:
-            raise ValueError(
-                "Skills missing YAML 'action' in frontmatter: " + ", ".join(bad)
-            )
+    def _validate_plan(self, plan: list[str]):
+        """
+        Pattern 2: Schema-governed firewall.
+        Every skill MUST pass Pydantic validation before execution.
+        """
+        from .schema import validate_skill_config
+        for step in plan:
+            skill = self.skills[step]
+            try:
+                validated = validate_skill_config(skill.meta)
+                skill.validated_config = validated
+                print(f"[Governance] ✅ {step} validated ({validated.action})")
+            except Exception as e:
+                raise RuntimeError(
+                    f"[Governance] ❌ Skill '{step}' failed validation: {e}"
+                ) from e
 
     def run_agent(self, instruction: str):
         print("\n[Agent] Step 1: Parsing instruction...")
@@ -82,14 +82,26 @@ class AgentRuntime:
 
         print("[Agent] Step 2: Plan (YAML-driven skills):")
         for step in plan:
-            sk: Skill = self.skills[step]
+            sk = self.skills[step]
             goal = sk.goal or sk.title
-            action = sk.meta.get("action")
+            action = sk.validated_config.action  # ← use validated, not raw meta
             print(f"  - {step} :: action={action} :: {goal}")
 
         print("[Agent] Step 3: Execute plan...")
-        execute_plan(plan, instruction, self.state, self.skills)
-        print("[Agent] Done.")
+        skills_in_plan = [self.skills[p] for p in plan]
+        results = execute_plan(self.state, skills_in_plan)  # ← fixed signature
+
+        print("[Agent] Step 4: Writing audit trail...")
+        for step, result in zip(plan, results):
+            skill = self.skills[step]
+            create_audit_record(
+                skill_name=step,
+                config_dict=skill.validated_config.model_dump(),
+                results=result,
+                outputs_dir=self.outputs_dir,
+            )
+        print("[Agent] ✅ All steps complete. Audit trail written.")
+        return results
 
     def draw_last(self):
         if self.state.qc is None:
@@ -103,4 +115,9 @@ class AgentRuntime:
             print("No counts in memory. Run /run-agent first.")
             return
         from .runtime import analyze_result
-        analyze_result(self.state.counts, expected_states=["00", "11"])
+        skill = self.skills.get("analyze_result.md")
+        if skill and hasattr(skill, "validated_config"):
+            expected = skill.validated_config.expected_states
+        else:
+            expected = ["00", "11"]  # sensible default
+        analyze_result(self.state.counts, expected_states=expected)

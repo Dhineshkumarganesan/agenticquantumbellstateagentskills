@@ -55,21 +55,40 @@ User Intent (natural language)
 │  handler.py       │  ← Never edited by agent
 └────────┬──────────┘
          │
-         ▼
-┌───────────────────┐
-│  outputs/         │
-│  ├── circuit_diagram.png
-│  ├── measurement_histogram.png
-│  ├── counts.json
-│  └── final_counts.json
-└───────────────────┘
+         ├──────────────────┐
+         ▼                  ▼
+┌───────────────────┐ ┌──────────────────────┐
+│  outputs/         │ │  outputs/audit_trail/ │
+│  ├── circuit_diagram.png  │ ├── audit_{skill}_{ts}.json
+│  ├── counts.json  │ │  SHA-256 hash chain   │
+│  └── ...          │ │  (tamper-evident)     │
+└───────────────────┘ └──────────────────────┘
 ```
+
+---
+## 🔒 Audit Trail
+All quantum experiment executions produce tamper-evident audit records based on SHA-256 hash chains.
+
+**Key guarantees:**
+- Config and results integrity
+- Cryptographic binding between config ↔ results
+- Persistent, independently verifiable records
+
+📖 [Full Principle Documentation](docs/audit_integrity_principles.md)
+🔍 [Verification Guide](docs/verification_guide.md)
+🧪 [Testing Strategy](docs/testing_strategy.md)
 
 ---
 
 ## Limitations and Extensibility
 
-While the system is highly declarative, some advanced features (such as new gate types, advanced circuit logic, or new output/visualization types like noise diagrams) require Python handler enhancements. For most new experiments or parameter changes, you only need to add or edit skills/*.md files—no Python changes are needed. However, if you introduce a new skill type or feature not yet supported by the handler, you must update the Python code to recognize and process it. Once a circuit or output type is supported, you can iterate and propagate changes freely via YAML/Markdown skills alone.
+| What You Want to Do | Edit Skills (YAML)? | Edit Python? |
+|---|---|---|
+| Change shots, qubits, parameters | ✅ Yes | ❌ No |
+| Add a new experiment with existing gates | ✅ Yes | ❌ No |
+| Add a new gate type (e.g., Toffoli) | ✅ Declare it | ⚠️ Handler must support it |
+| New visualization type (e.g., noise) | ❌ | ✅ Yes |
+| New output format (e.g., OpenQASM) | ❌ | ✅ Yes |
 
 ## The Key Pattern
 
