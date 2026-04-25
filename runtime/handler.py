@@ -13,13 +13,26 @@ import json
 import os
 import yaml
 import re
+import hashlib
 from pathlib import Path
+from pydantic import BaseModel, ValidationError
+from typing import Optional
 
 # Qiskit imports
 from qiskit import QuantumCircuit, transpile
 from qiskit_aer import AerSimulator
 from qiskit.visualization import plot_histogram, circuit_drawer
 import matplotlib.pyplot as plt
+
+class CircuitSkill(BaseModel):
+    action: str
+    circuit_type: str
+    qubits: int
+
+class ExecuteSkill(BaseModel):
+    shots: int
+    backend: str
+    seed: Optional[int] = None
 
 # ── Path config ──────────────────────────────────────────────────────────────
 
@@ -117,11 +130,12 @@ def step_execute_circuit(qc: QuantumCircuit, skill: dict) -> dict:
     """Step 2 — Simulate circuit and return raw counts."""
     shots   = skill["shots"]
     backend = skill["backend"]
-    print(f"  [execute]  backend={backend}  shots={shots}")
+    seed    = skill.get("seed")
+    print(f"  [execute]  backend={backend}  shots={shots}  seed={seed}")
 
     simulator   = AerSimulator()
     transpiled  = transpile(qc, simulator)
-    job         = simulator.run(transpiled, shots=shots)
+    job         = simulator.run(transpiled, shots=shots, seed_simulator=seed)
     result      = job.result()
     counts      = result.get_counts()
 
@@ -168,6 +182,14 @@ def step_export_counts(counts: dict, circuit_type: str,
         "entanglement_verified":   circuit_type in ("bell_state", "ghz_state"),
     }
 
+    config_hash = hashlib.sha256(
+        json.dumps({"circuit_type": circuit_type, "shots": shots}, sort_keys=True).encode()
+    ).hexdigest()
+    result["audit"] = {
+        "config_hash": config_hash,
+        "timestamp": __import__("datetime").datetime.utcnow().isoformat()
+    }
+
     out_path = OUTPUT_DIR / "final_counts.json"
     out_path.write_text(json.dumps(result, indent=2))
     print(f"  [export]   final counts saved → {out_path}")
@@ -194,6 +216,11 @@ def run_pipeline():
     # Process circuit skills
     for f in circuit_files:
         skill = read_skill(f)
+        try:
+            validated = CircuitSkill(**skill)
+        except ValidationError as e:
+            print(f"[skip] Invalid skill config in {f.name}: {e}")
+            continue
         action = skill.get("action")
         if not action:
             print(f"[skip] No action defined in {f.name}")
