@@ -209,6 +209,12 @@ def run_pipeline():
 
     # Load default execution/output skills for pipeline
     execute_skill  = read_skill(SKILLS_DIR / "execution" / "execute_circuit.md") if (SKILLS_DIR / "execution" / "execute_circuit.md").exists() else None
+    if execute_skill:
+        try:
+            ExecuteSkill(**execute_skill)
+        except ValidationError as e:
+            print(f"[error] Invalid execute skill config: {e}")
+            return
     viz_skill      = read_skill(SKILLS_DIR / "output"    / "visualize_circuit.md") if (SKILLS_DIR / "output" / "visualize_circuit.md").exists() else None
     export_skill   = read_skill(SKILLS_DIR / "output"    / "export_counts.md") if (SKILLS_DIR / "output" / "export_counts.md").exists() else None
 
