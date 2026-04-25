@@ -7,7 +7,7 @@ Accepted
 2025-01-15
 
 ## Authors
-- [Your Name / Team Name]
+- [DHINESH KUMAR GANESHAN]
 
 ## Reviewers
 - [Reviewer 1]
