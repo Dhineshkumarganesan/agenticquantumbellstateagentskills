@@ -1,14 +1,18 @@
 {
   "circuit_type": "ghz_state",
   "backend": "aer_simulator",
-  "shots": 100,
+  "shots": 512,
   "counts": {
-    "111": 56,
-    "000": 44
+    "111": 249,
+    "000": 263
   },
   "probabilities": {
-    "111": 0.56,
-    "000": 0.44
+    "111": 0.4863,
+    "000": 0.5137
   },
-  "entanglement_verified": true
+  "entanglement_verified": true,
+  "audit": {
+    "config_hash": "1abd90b65120aad09110f0f84568ac161fae04424b658787dec48dddc54c5c3f",
+    "timestamp": "2026-04-27T12:59:27.289114"
+  }
 }

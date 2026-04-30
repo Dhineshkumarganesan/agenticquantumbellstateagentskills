@@ -1,14 +1,18 @@
 {
   "circuit_type": "bell_state",
   "backend": "aer_simulator",
-  "shots": 100,
+  "shots": 512,
   "counts": {
-    "00": 49,
-    "11": 51
+    "11": 261,
+    "00": 251
   },
   "probabilities": {
-    "00": 0.49,
-    "11": 0.51
+    "11": 0.5098,
+    "00": 0.4902
   },
-  "entanglement_verified": true
+  "entanglement_verified": true,
+  "audit": {
+    "config_hash": "2dc74a6d9111e66e2eccda8b1f9bde91939cd2b78170a51fd567f2aef511c94f",
+    "timestamp": "2026-04-27T12:59:26.862274"
+  }
 }

@@ -20,6 +20,7 @@ from typing import Optional
 
 # Qiskit imports
 from qiskit import QuantumCircuit, transpile
+from qiskit.circuit import Parameter
 from qiskit_aer import AerSimulator
 from qiskit.visualization import plot_histogram, circuit_drawer
 import matplotlib.pyplot as plt
@@ -90,11 +91,23 @@ CIRCUIT_BUILDERS = {
 # ── Pipeline steps ─────────────────────────────────────────────────────────────
 
 def build_declarative_circuit(skill: dict) -> QuantumCircuit:
-    """Build a circuit from declarative YAML (gates, qubits, measurements)."""
+    """Build a circuit from declarative YAML (gates, qubits, measurements), supporting symbolic parameters."""
     qubits = skill["qubits"]
     qc = QuantumCircuit(qubits, qubits)
+    param_objs = {}
+    # First pass: collect all symbolic parameters
+    for gate in skill.get("gates", []):
+        param = gate.get("parameter")
+        if isinstance(param, str) and param not in param_objs:
+            param_objs[param] = Parameter(param)
+    # Second pass: build circuit
     for gate in skill.get("gates", []):
         gtype = gate["type"].lower()
+        param = gate.get("parameter")
+        if isinstance(param, str):
+            param_val = param_objs[param]
+        else:
+            param_val = param
         if gtype == "h":
             for t in gate.get("target", []):
                 qc.h(t)
@@ -102,13 +115,20 @@ def build_declarative_circuit(skill: dict) -> QuantumCircuit:
             qc.cx(gate["control"], gate["target"])
         elif gtype == "rz":
             for t in gate.get("target", []):
-                qc.rz(gate["parameter"], t)
+                qc.rz(param_val, t)
+        elif gtype == "ry":
+            for t in gate.get("target", []):
+                qc.ry(param_val, t)
+        elif gtype == "rx":
+            for t in gate.get("target", []):
+                qc.rx(param_val, t)
         # Add more gates as needed
         else:
             raise ValueError(f"Unsupported gate type: {gtype}")
     # Measurements
     for m in skill.get("measurements", []):
         qc.measure(m, m)
+    qc._param_objs = param_objs  # Attach for later binding
     return qc
 
 def step_design_circuit(skill: dict) -> QuantumCircuit:
@@ -126,18 +146,71 @@ def step_design_circuit(skill: dict) -> QuantumCircuit:
                      f"This handler only supports: {list(CIRCUIT_BUILDERS.keys())} or declarative YAML with 'gates' and 'measurements'. To add a new circuit, extend CIRCUIT_BUILDERS or use declarative YAML.")
 
 
-def step_execute_circuit(qc: QuantumCircuit, skill: dict) -> dict:
-    """Step 2 — Simulate circuit and return raw counts."""
+"""
+handler.py — Legacy compatibility shim.
+
+All circuit execution now goes through AgentRuntime._dispatch_execution,
+which routes variational circuits to the optimizer loop
+and direct circuits to single-shot execution.
+"""
+
+from agent_runtime.agent import AgentRuntime
+
+def handle_execute(skill_data: dict, context: dict) -> dict:
+    raise RuntimeError(
+        "handle_execute() is deprecated. "
+        "Execution now routes through AgentRuntime._dispatch_execution() "
+        "in agent.py, which correctly binds parameters before "
+        "sending circuits to the backend. "
+        "Use AgentRuntime().run_agent() as your entry point."
+    )
+
+    """Step 2 — Simulate circuit and return raw counts. Supports parameter binding and optimization."""
     shots   = skill["shots"]
     backend = skill["backend"]
     seed    = skill.get("seed")
     print(f"  [execute]  backend={backend}  shots={shots}  seed={seed}")
 
-    simulator   = AerSimulator()
-    transpiled  = transpile(qc, simulator)
-    job         = simulator.run(transpiled, shots=shots, seed_simulator=seed)
-    result      = job.result()
-    counts      = result.get_counts()
+    # Check for variational/optimization policy
+    variational = skill.get("variational_policy")
+    param_objs = getattr(qc, "_param_objs", {})
+    if variational and param_objs:
+        import numpy as np
+        from scipy.optimize import minimize
+        bounds = variational.get("parameter_bounds")
+        max_iter = variational.get("max_iterations", 20)
+        optimizer = variational.get("optimizer", "COBYLA")
+        param_names = list(param_objs.keys())
+        def cost_fn(x):
+            bind = {param_objs[name]: val for name, val in zip(param_names, x)}
+            bound_qc = qc.bind_parameters(bind)
+            simulator = AerSimulator()
+            transpiled = transpile(bound_qc, simulator)
+            print(f"[debug] Running simulator with bind: {bind}")
+            job = simulator.run(transpiled, shots=shots, seed_simulator=seed, parameter_binds=[bind])
+            result = job.result()
+            counts = result.get_counts()
+            # Cost: maximize |00...0⟩ or as specified
+            cost_state = skill.get("cost_function", "maximize_00").replace("maximize_", "")
+            return -counts.get(cost_state, 0)
+        x0 = [np.mean(b) for b in bounds]
+        res = minimize(cost_fn, x0, bounds=bounds, method=optimizer, options={"maxiter": max_iter})
+        # Final run with optimal params
+        bind = {param_objs[name]: val for name, val in zip(param_names, res.x)}
+        bound_qc = qc.bind_parameters(bind)
+        simulator = AerSimulator()
+        transpiled = transpile(bound_qc, simulator)
+        print(f"[debug] Final run with bind: {bind}")
+        job = simulator.run(transpiled, shots=shots, seed_simulator=seed, parameter_binds=[bind])
+        result = job.result()
+        counts = result.get_counts()
+    else:
+        print(f"[debug] Non-variational run (no parameter binding)")
+        simulator   = AerSimulator()
+        transpiled  = transpile(qc, simulator)
+        job         = simulator.run(transpiled, shots=shots, seed_simulator=seed)
+        result      = job.result()
+        counts      = result.get_counts()
 
     counts_path = OUTPUT_DIR / "counts.json"
     counts_path.write_text(json.dumps(counts, indent=2))

@@ -1,0 +1,25 @@
+{
+  "timestamp": "2026-04-27T17:46:34.384515Z",
+  "skill": "analyze_result.md",
+  "config_hash_sha256": "28c74cc393b52d2e1e089de85ff36addeb94114fc40e92f810eca7fc5bc861d4",
+  "results_hash_sha256": "6400d74461c875e1ea3aa713e2b565f8d145cb8f24e5bd699c1dc8e0efedfb5a",
+  "execution_hash_sha256": "aaed9aa00defeae003442e3aab8462e50da85747cee88529b5cd8e1a3b45ea4d",
+  "config_snapshot": {
+    "action": "analyze_result",
+    "expected_states": [
+      "00",
+      "11"
+    ],
+    "title": null,
+    "goal": null
+  },
+  "results_snapshot": {
+    "action": "analyze_result",
+    "status": "ok",
+    "expected_states": [
+      "00",
+      "11"
+    ]
+  },
+  "verification_method": "SHA-256(config) + SHA-256(results) -> SHA-256(combined)"
+}

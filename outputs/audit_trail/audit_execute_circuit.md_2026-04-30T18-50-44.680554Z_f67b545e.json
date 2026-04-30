@@ -1,0 +1,26 @@
+{
+  "timestamp": "2026-04-30T18:50:44.680554Z",
+  "skill": "execute_circuit.md",
+  "config_hash_sha256": "5536f02e34dd94e08d1c38763fc56f5bd9c82f72fef56d87c3f223467d5f00cd",
+  "results_hash_sha256": "d58771eaab2b0ba2cad1ae1815406256b3a92684107c7ad876a6e41dc2a25582",
+  "execution_hash_sha256": "f67b545e4c84af8ea867617a927d40f9eac6e0076b99c29fc66432038f338410",
+  "config_snapshot": {
+    "action": "execute_circuit",
+    "shots": 256,
+    "seed": 42,
+    "execution_mode": "deterministic",
+    "output_counts": "outputs/bell_counts_256.json",
+    "variational_policy": null,
+    "title": null,
+    "goal": null
+  },
+  "results_snapshot": {
+    "action": "execute_circuit",
+    "status": "ok",
+    "counts": {
+      "00": 129,
+      "11": 127
+    }
+  },
+  "verification_method": "SHA-256(config) + SHA-256(results) -> SHA-256(combined)"
+}

@@ -31,7 +31,9 @@ Quantum computing experiments are complex, error-prone, and difficult to audit. 
 
 ## Solution
 
-This pattern enforces a strict separation of concerns:
+This pattern enforces a strict separation of concerns and governs the trust boundary between agent-driven exploration and certified, reproducible results:
+
+The declarative certification layer must remain architecturally independent from the adaptive exploration system. Certification by the same system that generated the result does not constitute an independent audit trail.
 - **Agents** edit only declarative YAML skill files, never code.
 - **Schema validation** (Pydantic) acts as a governance firewall, rejecting invalid or out-of-contract configs before execution.
 - **Runtime** is immutable and executes only validated, contract-compliant configs.
@@ -39,7 +41,12 @@ This pattern enforces a strict separation of concerns:
 - **Variational algorithms** are handled at the policy level: agents set bounds and optimization policy, runtime owns the inner loop.
 - **Audit trails** cryptographically link every config to its results, enabling full traceability and regulator-grade verification.
 
-This architecture enables safe, scalable, and auditable quantum experimentation—ready for both research and compliance-driven environments.
+**Scope and Limitations:**
+- For known circuit families (e.g., Bell, GHZ, QAOA with fixed ansatz), declarative governance applies from the start.
+- For novel, adaptively generated circuits, the declarative pattern governs the certification phase: once an adaptive agent converges on a result, the final circuit and parameters are captured, schema-validated, and locked as a "golden config" for reproducibility, audit, and publication.
+- Declarative methods do not replace adaptive exploration; they certify and preserve its outputs for trust, compliance, and collaboration.
+
+This architecture enables safe, scalable, and auditable quantum experimentation—ready for both research and compliance-driven environments, and acts as the notary for adaptive agent discoveries.
 
 
 ## Key Principles
@@ -53,7 +60,8 @@ This architecture enables safe, scalable, and auditable quantum experimentation�
 - Terraform (HashiCorp) — infrastructure as code
 - Kubernetes — declarative desired-state configuration  
 - GitOps (Weaveworks) — git as single source of truth
-- [Any other influences you want to acknowledge]
+- PennyLane (Xanadu) — device configuration model for reproducible quantum ML
+- IBM Qiskit Runtime — Estimator and Sampler primitives for declarative quantum execution
 
 ## What's New Here
 
@@ -61,7 +69,7 @@ This pattern introduces several innovations that go beyond traditional agentic o
 
 1. **Schema-Governed Execution:** Every skill YAML is validated by a strict Pydantic schema before execution. This eliminates "YAML drift" and ensures only contract-compliant configurations are ever run.
 2. **Configurable Determinism:** Agents can toggle between deterministic (seeded) and stochastic (random) quantum runs by setting a single field in YAML. This enables both audit-grade reproducibility and true quantum sampling from the same pipeline.
-3. **Variational Policy Control:** For algorithms like QAOA and VQE, agents specify parameter bounds and optimization policy—not the actual parameters. The runtime owns the optimization loop, keeping the agent declarative and the system scalable.
+3. **Variational Policy Control [Planned v2.0]:** For algorithms like QAOA and VQE, agents will specify parameter bounds and optimization policy—not the actual parameters. The runtime will own the optimization loop, keeping the agent declarative and the system scalable. This feature is planned for a future release.
 4. **Cryptographic Audit Trails:** Every execution produces a tamper-evident audit record, cryptographically linking the config and results. This enables regulator-grade traceability and independent verification.
 
 These features collectively make the system production-credible, regulator-ready, and uniquely agent-friendly.

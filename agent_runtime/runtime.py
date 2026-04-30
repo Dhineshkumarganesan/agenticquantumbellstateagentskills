@@ -20,7 +20,41 @@ class RuntimeState:
     context: dict[str, Any] = None  # general stash
 
 
-def execute_plan(state: RuntimeState, skills: list[Skill]) -> list[dict]:
+"""
+runtime.py — Legacy compatibility shim.
+
+All execution now routes through AgentRuntime in agent.py,
+which correctly handles variational dispatch and parameter binding.
+
+DO NOT add execution logic here. This file exists only so that
+existing imports like `from agent_runtime.runtime import run`
+don't break.
+"""
+
+from agent_runtime.agent import AgentRuntime
+
+# Legacy entry point — now just delegates
+def run(user_input: str = "") -> dict:
+    """
+    Legacy entry point. Delegates to AgentRuntime.run_agent().
+    """
+    runtime = AgentRuntime()
+    return runtime.run_agent(user_input)
+
+def execute_circuit(*args, **kwargs):
+    raise RuntimeError(
+        "execute_circuit() has been removed from runtime.py. "
+        "Use AgentRuntime().run_agent() instead, which correctly "
+        "dispatches variational vs direct execution. "
+        "See agent_runtime/agent.py for the implementation."
+    )
+
+def execute_plan(*args, **kwargs):
+    raise RuntimeError(
+        "execute_plan() has been removed from runtime.py. "
+        "Use AgentRuntime().run_agent() instead."
+    )
+
     """
     Execute a validated plan. Each skill already has .validated_config
     attached by the governance firewall in agent._validate_plan().
@@ -42,6 +76,7 @@ def execute_plan(state: RuntimeState, skills: list[Skill]) -> list[dict]:
                 circuit_type=config.circuit,
                 qubits=config.qubits,
                 measure=config.measure,
+                meta=dict(config),
             )
             results.append({"action": action, "status": "ok"})
         elif action == "execute_circuit":
@@ -97,43 +132,63 @@ def execute_plan(state: RuntimeState, skills: list[Skill]) -> list[dict]:
     return results
 
 
-def generate_circuit(circuit_type: str = "bell", qubits: int = 2, measure: bool = True) -> QuantumCircuit:
-    circuit_type = circuit_type.lower()
+from qiskit.circuit import Parameter
 
-    if circuit_type == "bell":
-        if qubits != 2:
-            raise ValueError("Bell circuit requires qubits=2")
-        qc = QuantumCircuit(2, 2 if measure else 0)
-        qc.h(0)
-        qc.cx(0, 1)
-        if measure:
-            qc.measure([0, 1], [0, 1])
-        print("[Runtime] Circuit generated: Bell state")
-        return qc
+def build_qaoa_circuit(meta: dict) -> QuantumCircuit:
+    n_qubits = meta.get("qubits", 4)
+    p_layers = meta.get("p", 1)
+    measure = meta.get("measure", True)
+    edges = meta.get("edges", [(i, (i + 1) % n_qubits) for i in range(n_qubits)])
+    gammas = [Parameter(f"γ_{layer}") for layer in range(p_layers)]
+    betas = [Parameter(f"β_{layer}") for layer in range(p_layers)]
+    qc = QuantumCircuit(n_qubits)
+    qc.h(range(n_qubits))
+    for layer in range(p_layers):
+        for i, j in edges:
+            qc.cx(i, j)
+            qc.rz(2 * gammas[layer], j)
+            qc.cx(i, j)
+        qc.rx(2 * betas[layer], range(n_qubits))
+    if measure:
+        qc.measure_all()
+    print(f"[Runtime] Circuit generated: QAOA {n_qubits}q, {len(edges)} edges, p={p_layers}")
+    return qc
 
-    if circuit_type == "superposition":
-        if qubits != 1:
-            raise ValueError("superposition circuit requires qubits=1")
-        qc = QuantumCircuit(1, 1 if measure else 0)
-        qc.h(0)
-        if measure:
-            qc.measure([0], [0])
-        print("[Runtime] Circuit generated: 1-qubit superposition")
-        return qc
+def build_bell_circuit(meta: dict) -> QuantumCircuit:
+    qc = QuantumCircuit(2)
+    qc.h(0)
+    qc.cx(0, 1)
+    if meta.get("measure", True):
+        qc.measure_all()
+    print("[Runtime] Circuit generated: Bell state")
+    return qc
 
-    if circuit_type == "ghz":
-        if qubits < 3:
-            raise ValueError("GHZ circuit requires qubits>=3")
-        qc = QuantumCircuit(qubits, qubits if measure else 0)
-        qc.h(0)
-        for i in range(qubits - 1):
-            qc.cx(i, i + 1)
-        if measure:
-            qc.measure(list(range(qubits)), list(range(qubits)))
-        print(f"[Runtime] Circuit generated: {qubits}-qubit GHZ")
-        return qc
+def build_ghz_circuit(meta: dict) -> QuantumCircuit:
+    n_qubits = meta.get("qubits", 3)
+    qc = QuantumCircuit(n_qubits)
+    qc.h(0)
+    for i in range(n_qubits - 1):
+        qc.cx(i, i + 1)
+    if meta.get("measure", True):
+        qc.measure_all()
+    print(f"[Runtime] Circuit generated: {n_qubits}-qubit GHZ")
+    return qc
 
-    raise ValueError(f"Unknown circuit type: {circuit_type}")
+CIRCUIT_REGISTRY = {
+    "qaoa": build_qaoa_circuit,
+    "bell": build_bell_circuit,
+    "ghz": build_ghz_circuit,
+}
+
+def generate_circuit(circuit_type: str = "bell", qubits: int = 2, measure: bool = True, meta: dict = None) -> QuantumCircuit:
+    # meta is the full validated skill config (dict)
+    if meta is None:
+        meta = {"circuit": circuit_type, "qubits": qubits, "measure": measure}
+    circuit_type = meta.get("circuit", "bell").lower()
+    builder = CIRCUIT_REGISTRY.get(circuit_type)
+    if builder is None:
+        raise ValueError(f"Unknown circuit type: {circuit_type}. Available: {list(CIRCUIT_REGISTRY.keys())}")
+    return builder(meta)
 
 
 from .schema import ExecutionMode

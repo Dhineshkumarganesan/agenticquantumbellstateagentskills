@@ -1,0 +1,22 @@
+{
+  "timestamp": "2026-04-30T18:50:44.680815Z",
+  "skill": "draw_circuit.md",
+  "config_hash_sha256": "7129f12ffc2749e4d84cf8f1e27f5d8b00068f0502d8eb008153a450f6236f36",
+  "results_hash_sha256": "d4ff0a98dd05aca0e413ecddb0bf85693a10d6ab260fb9471e6aee39526a7f9b",
+  "execution_hash_sha256": "42b0129bc6d9001ecc10971892a96ac63bd350fbb9a811586e88607b59f92dfc",
+  "config_snapshot": {
+    "action": "draw_circuit",
+    "draw_output": "mpl",
+    "dpi": 300,
+    "output_image": "outputs/bell_diagram_dpi300.png",
+    "output_text": "outputs/bell_diagram.txt",
+    "title": null,
+    "goal": null
+  },
+  "results_snapshot": {
+    "action": "draw_circuit",
+    "status": "ok",
+    "image": "outputs/bell_diagram_dpi300.png"
+  },
+  "verification_method": "SHA-256(config) + SHA-256(results) -> SHA-256(combined)"
+}

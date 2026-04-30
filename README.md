@@ -25,9 +25,27 @@ This post is for developers comfortable with Python and Qiskit, and curious to s
 ## Architecture
 
 ```
-User Intent (natural language)
-        │
-        ▼
+User Input
+    │
+    ▼
+┌──────────┐    ┌───────────┐    ┌──────────────┐    ┌──────────┐
+│ PLANNER  │───▶│   BUILD   │───▶│   OPTIMIZE   │───▶│ MEASURE  │
+│          │    │           │    │              │    │          │
+│ Generates│    │ QAOA circ │    │ COBYLA finds │    │ 1024     │
+│ the plan │    │ {β₀, γ₀}  │    │ optimal β, γ │    │ shots    │
+└──────────┘    └───────────┘    └──────────────┘    └──────────┘
+                   │                                    │
+                   │         🛡️ Auto-inserted           │
+                   │         if missing!                ▼
+                   │                            ┌──────────────┐
+                   └───────────────────────────▶│   RESULTS    │
+                                                │              │
+                                                │ Top cuts     │
+                                                │ Audit trail  │
+                                                │ Opt params   │
+                                                └──────────────┘
+
+# Filesystem/Skill Flow
 ┌───────────────────┐
 │  AGENT.md         │  ← Quantum Circuit Expert
 │  (Orchestrator)   │    reads intent, selects skill,
@@ -98,6 +116,13 @@ All quantum experiment executions produce tamper-evident audit records based on 
 | `skills/*.md` | Agent edits YAML only | Circuit configuration |
 | `runtime/handler.py` | Runtime executes | Quantum logic (read-only for agent) |
 | `outputs/` | Runtime writes | Results and diagrams |
+
+### QAOA Pipeline: Defensive Design
+- **Skill Aliasing:** Planner/dispatcher vocabularies unified via alias map (`SKILL_ALIASES`).
+- **Auto-Insert Optimize:** If a plan tries to measure unbound parameters, the agent inserts an `optimize` step before `measure`.
+- **Variational Loop:** Classical optimizer (COBYLA) finds optimal QAOA parameters before measurement.
+- **RuntimeState:** All state and results are threaded through a single object, never unpacked/iterated.
+- **Audit Trail:** Every step is recorded with config/results hashes for full transparency and tamper-evidence.
 
 The agent **never touches Python**. The runtime **never reads intent**.
 They communicate only through YAML skill files.

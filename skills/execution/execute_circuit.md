@@ -1,7 +1,6 @@
 ---
 action: execute_circuit
-shots: 100
-backend: aer_simulator
+shots: 512
 constraints:
   min_shots: 256
   max_shots: 8192

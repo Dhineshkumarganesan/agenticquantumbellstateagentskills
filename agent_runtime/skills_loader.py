@@ -16,6 +16,15 @@ class Skill:
     body: str
     raw: str
 
+    PLANNING_FIELDS = {"step_id", "depends_on"}
+
+    @property
+    def schema_meta(self) -> Dict[str, Any]:
+        """
+        Return meta with planning-only fields stripped (for schema validation).
+        """
+        return {k: v for k, v in self.meta.items() if k not in self.PLANNING_FIELDS}
+
 
 def load_skill_file(skills_dir: str, filename: str) -> Skill:
     path = os.path.join(skills_dir, filename)
@@ -50,8 +59,11 @@ def load_all_skills(skills_dir: str) -> dict[str, Skill]:
     if not os.path.isdir(skills_dir):
         return skills
 
-    for filename in sorted(os.listdir(skills_dir)):
-        if filename.endswith(".md"):
-            skill = load_skill_file(skills_dir, filename)
-            skills[filename] = skill
+    # Recursively walk through all subdirectories
+    for root, _, files in os.walk(skills_dir):
+        for filename in sorted(files):
+            if filename.endswith(".md"):
+                rel_path = os.path.relpath(os.path.join(root, filename), skills_dir)
+                skill = load_skill_file(skills_dir, rel_path)
+                skills[rel_path] = skill
     return skills

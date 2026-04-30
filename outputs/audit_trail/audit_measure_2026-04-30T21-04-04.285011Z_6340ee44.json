@@ -1,0 +1,19 @@
+{
+  "timestamp": "2026-04-30T21:04:04.285011Z",
+  "skill": "measure",
+  "config_hash_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+  "results_hash_sha256": "a32f64db88c92812acfc02ffec707cddb8bab101d223f429b1010f7a3051c807",
+  "execution_hash_sha256": "6340ee4455bbcddc2a62774c308a4e2da494cd6995a39ff050e2f9e51d1a8e03",
+  "config_snapshot": {},
+  "results_snapshot": {
+    "step": 3,
+    "skill": "measure",
+    "status": "success",
+    "top_counts": {
+      "1010": 289,
+      "0101": 286,
+      "1100": 87
+    }
+  },
+  "verification_method": "SHA-256(config) + SHA-256(results) -> SHA-256(combined)"
+}

@@ -1,14 +1,18 @@
 {
   "circuit_type": "custom_declarative",
   "backend": "aer_simulator",
-  "shots": 100,
+  "shots": 512,
   "counts": {
-    "11": 52,
-    "00": 48
+    "00": 248,
+    "11": 264
   },
   "probabilities": {
-    "11": 0.52,
-    "00": 0.48
+    "00": 0.4844,
+    "11": 0.5156
   },
-  "entanglement_verified": false
+  "entanglement_verified": false,
+  "audit": {
+    "config_hash": "9498f298aada23f6bb96b30e642a195ffb438e8a53d610f86b1e2dc782604e95",
+    "timestamp": "2026-04-27T12:59:27.064578"
+  }
 }

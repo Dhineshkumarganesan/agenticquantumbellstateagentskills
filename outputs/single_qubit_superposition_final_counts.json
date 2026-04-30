@@ -3,12 +3,16 @@
   "backend": "aer_simulator",
   "shots": 100,
   "counts": {
-    "1": 40,
-    "0": 60
+    "1": 37,
+    "0": 63
   },
   "probabilities": {
-    "1": 0.4,
-    "0": 0.6
+    "1": 0.37,
+    "0": 0.63
   },
-  "entanglement_verified": false
+  "entanglement_verified": false,
+  "audit": {
+    "config_hash": "a611b350ca97894fe079b1278a56dd390b62de2fe3d2aaaf6b8685ebbbbdba22",
+    "timestamp": "2026-04-25T19:59:16.212229"
+  }
 }

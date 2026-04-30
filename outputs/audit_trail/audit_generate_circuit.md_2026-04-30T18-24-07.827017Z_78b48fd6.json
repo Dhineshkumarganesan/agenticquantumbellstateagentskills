@@ -1,0 +1,20 @@
+{
+  "timestamp": "2026-04-30T18:24:07.827017Z",
+  "skill": "generate_circuit.md",
+  "config_hash_sha256": "c4ee4c53654e52f72457366c586832e5e7ec1183cb8644b9e5689123d127eadb",
+  "results_hash_sha256": "fc897dc1e77e911c23a23ed7de62f9efcd468f52d1087c63e5fe79ffc2cbc628",
+  "execution_hash_sha256": "78b48fd6c4ed35f83ecc8a9072562510de2e9902f750139ad7e78852384679ba",
+  "config_snapshot": {
+    "action": "generate_circuit",
+    "circuit": "bell",
+    "qubits": 2,
+    "measure": true,
+    "title": null,
+    "goal": null
+  },
+  "results_snapshot": {
+    "action": "generate_circuit",
+    "status": "ok"
+  },
+  "verification_method": "SHA-256(config) + SHA-256(results) -> SHA-256(combined)"
+}
